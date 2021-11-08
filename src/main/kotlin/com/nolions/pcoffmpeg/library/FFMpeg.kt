@@ -1,27 +1,208 @@
 package com.nolions.pcoffmpeg.library
 
-import javafx.collections.ObservableList
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
 
 class FFMpeg(private val ffmpegExePath: String) {
-    private val ffmpegCmd = ArrayList<String>()
     private var errorStream: InputStream? = null
     private var inputStreamReader: InputStreamReader? = null
     private var br: BufferedReader? = null
+    private var resultCollection = ArrayList<String>()
+
+    private lateinit var media: Media
+
+    private var hlsPath: String = ""
+    private var cmdList = ArrayList<String>()
 
     init {
-        new()
+        cmdList.add(ffmpegExePath)
     }
 
-    private fun new() {
-        ffmpegCmd.add(ffmpegExePath)
+    /**
+     * FFMpeg 版本資訊
+     */
+    fun version(): FFMpeg {
+        cmdList.add("-")
+        cmdList.add("version")
+        return this
     }
 
-    private fun run(cmds: ArrayList<String>, collection: ObservableList<String>) {
-        val cmdList = ffmpegCmd + cmds
+    /**
+     * video 轉換成 HLS
+     * -----------------------
+     * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 <output.m3u8>
+     */
+    fun convertHLS(path: String, code: String = "copy", seconds: Int = 2, size: Int = 0): FFMpeg {
+        input(path)
+        videDecode(code)
+        hlsTime(seconds)
+        hlsListSize(size)
+        output()
+
+        return this
+    }
+
+    /**
+     * VOD convert HLS
+     * -----------------------
+     * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 -hls_playlist_type vod -hls_flags independent_segments <output.m3u8>
+     */
+    fun convertVodHLS(path: String, code: String = "copy", seconds: Int = 2, size: Int = 0): FFMpeg {
+        input(path)
+        videDecode(code)
+        hlsTime(seconds)
+        hlsListSize(size)
+        playlistType(HlsPlaylistType.VOD)
+        hlsFlags(HlsFlagsOperation.INDEPENDENT_SEGMENTS)
+        output()
+
+        return this
+    }
+
+    /**
+     * 輸入源
+     *
+     * @param path String
+     * @return FFMpeg
+     */
+    fun input(path: String): FFMpeg {
+        cmdList.add("-i")
+        cmdList.add(path)
+
+        media = Media(path = path)
+        hlsPath = "${media.parent}/${media.name}.m3u8"
+
+        return this
+    }
+
+    /**
+     * 影片編碼方式
+     *
+     * @param code String
+     * @return FFMpeg
+     */
+    fun videDecode(code: String = "copy"): FFMpeg {
+        cmdList.add("-vcodec")
+        cmdList.add(code)
+
+        return this
+    }
+
+    /**
+     * 音訊編碼方式
+     *
+     * @param code String
+     * @return FFMpeg
+     */
+    fun audioDecode(code: String = "copy"): FFMpeg {
+        cmdList.add("-acodec")
+        cmdList.add(code)
+
+        return this
+    }
+
+    /**
+     * 切片長度
+     *
+     * @param seconds Int
+     * @return FFMpeg
+     */
+    fun hlsTime(seconds: Int = 2): FFMpeg {
+        cmdList.add("-hls_time")
+        cmdList.add(seconds.toString())
+
+        return this
+    }
+
+    /**
+     * playlist播放清單最多的內容，0為無限制，預設為0
+     *
+     * @param  size Int
+     * @return FFMpeg
+     */
+    fun hlsListSize(size: Int = 0): FFMpeg {
+        cmdList.add("-hls_list_size")
+        cmdList.add(size.toString())
+
+        return this
+    }
+
+    /**
+     * 輸出檔案
+     *
+     * @param output String|null
+     * @return FFMpeg
+     */
+    fun output(output: String? = null): FFMpeg {
+        output?.let {
+            hlsPath = it
+        }
+
+        cmdList.add(hlsPath)
+
+        return this
+    }
+
+    /**
+     * 播放列表類型
+     * ----------------------
+     * hls_playlist_type event 強制hls_list_size為0，且播放列表(playlist)只能附加到
+     * hls_playlist_type vod 強制hls_list_size為0，且播放列表不得更改
+     * @param type String
+     * @return FFMpeg
+     */
+    // TODO segments => enum
+    fun playlistType(type: HlsPlaylistType): FFMpeg {
+        when (type) {
+            HlsPlaylistType.VOD, HlsPlaylistType.EVENT -> {
+                cmdList.add("-hls_playlist_type")
+                cmdList.add(type.code)
+            }
+        }
+
+        return this
+    }
+
+    /**
+     * HLS flag 設定
+     * @param segments String
+     * @return FFMpeg
+     */
+    fun hlsFlags(operaion: HlsFlagsOperation): FFMpeg {
+        when (operaion) {
+            HlsFlagsOperation.SINGLE_FILE,
+            HlsFlagsOperation.DELETE_SEGMENTS,
+            HlsFlagsOperation.APPEND_LIST,
+            HlsFlagsOperation.ROUND_DURATIONS,
+            HlsFlagsOperation.DISCONT_START,
+            HlsFlagsOperation.OMIT_ENDLIST,
+            HlsFlagsOperation.PERIOD_REKEY,
+            HlsFlagsOperation.INDEPENDENT_SEGMENTS,
+            HlsFlagsOperation.IFRAMES_ONLY,
+            HlsFlagsOperation.SPLIT_BY_TIME,
+            HlsFlagsOperation.PROGRAM_DATE_TIME,
+            HlsFlagsOperation.SECOND_LEVEL_SEGMENT_INDEX,
+            HlsFlagsOperation.SECOND_LEVEL_SEGMENT_SIZE,
+            HlsFlagsOperation.SECOND_LEVEL_SEGMENT_DURATION
+            -> {
+                cmdList.add("-hls_flags")
+                cmdList.add(operaion.code)
+            }
+        }
+
+
+        return this
+    }
+
+    /**
+     * 執行 ffmpeg 指令
+     *
+     * @return ArrayList<String>
+     */
+    fun run(): ArrayList<String> {
+        println(cmdList.size)
         val builder = ProcessBuilder(cmdList)
         val process = builder.start()
         errorStream = process.errorStream
@@ -37,85 +218,65 @@ class FFMpeg(private val ffmpegExePath: String) {
         try {
             br?.let {
                 while (it.readLine() != null) {
-                    collection.add(it.readLine())
+                    resultCollection.add(it.readLine())
                     println(it.readLine())
-                    println("----------------------")
+                    println("--------------------------------------------")
                 }
             }
         } finally {
             br?.close()
             inputStreamReader?.close()
             errorStream?.close()
-            cmds.clear()
+            cmdList.clear()
         }
+
+        return resultCollection
     }
 
-    /**
-     * ffmpeg version
-     */
-    fun version(collection: ObservableList<String>) {
-        val cmds = ArrayList<String>()
-        cmds.add("-")
-        cmds.add("version")
+    data class Media(val path: String) {
+        private val _file = File(path)
+        val file = _file
+        val parent: String = _file.parent
+        val name: String
+            get() {
+                var fname = _file.name
+                val pos = fname.lastIndexOf(".")
+                if (pos > 0) {
+                    fname = fname.substring(0, pos)
+                }
+                return fname
+            }
+        val extension: String
+            get() {
+                var ext = ""
+                val index: Int = path.lastIndexOf('.')
+                if (index > 0) {
+                    ext = path.substring(index + 1)
+                }
 
-        run(cmds, collection)
-    }
-
-    /**
-     * media convert to HLS
-     * -----------------------
-     * ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 60 -hls_list_size 0 <output.m3u8>
-     */
-    fun convertHLS(
-        file: MediaFile,
-        time: Int = 60,
-        listSize: Int = 0,
-        collection: ObservableList<String>
-    ) {
-        val hlsFile = "${file.parent}/${file.name}.m3u8"
-
-        val cmds = ArrayList<String>()
-        cmds.add("-i")
-        cmds.add(file.path)
-
-        cmds.add("-vcodec")
-        cmds.add("copy")
-
-//        cmds.add("-acodec")
-//        cmds.add("copy")
-
-        cmds.add("-hls_time")
-        cmds.add(time.toString())
-
-        cmds.add("-hls_list_size")
-        cmds.add(listSize.toString())
-
-        cmds.add(hlsFile)
-        run(cmds, collection)
+                return ext
+            }
     }
 }
 
-data class MediaFile(val path: String) {
-    private val _file = File(path)
-    val file = _file
-    val parent: String = _file.parent
-    val name: String
-        get() {
-            var fname = _file.name
-            val pos = fname.lastIndexOf(".")
-            if (pos > 0) {
-                fname = fname.substring(0, pos)
-            }
-            return fname
-        }
-    val extension: String
-        get() {
-            var ext = ""
-            val index: Int = path.lastIndexOf('.')
-            if (index > 0) {
-                ext = path.substring(index + 1)
-            }
+enum class HlsPlaylistType(val code: String) {
+    EVENT("event"),
+    VOD("vod"),
+}
 
-            return ext
-        }
+enum class HlsFlagsOperation(val code: String) {
+    SINGLE_FILE("single_file"),
+    DELETE_SEGMENTS("delete_segments"),
+    APPEND_LIST("append_list"),
+    ROUND_DURATIONS("round_durations"),
+    DISCONT_START("discont_start"),
+    OMIT_ENDLIST("omit_endlist"),
+    PERIOD_REKEY("period_rekey"),
+    INDEPENDENT_SEGMENTS("independent_segments"),
+    IFRAMES_ONLY("iframes_only"),
+    SPLIT_BY_TIME("split_by_time"),
+    PROGRAM_DATE_TIME("program_date_time"),
+    SECOND_LEVEL_SEGMENT_INDEX("second_level_segment_index"),
+    SECOND_LEVEL_SEGMENT_SIZE("second_level_segment_size"),
+    SECOND_LEVEL_SEGMENT_DURATION("second_level_segment_duration"),
 }
