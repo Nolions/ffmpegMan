@@ -1,6 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version "1.4.32"
     id 'application'
+    id 'org.openjfx.javafxplugin' version "0.0.10"
 }
 group = 'com.test'
 version = '1.0-SNAPSHOT'
@@ -9,12 +10,17 @@ repositories {
     mavenCentral()
 }
 
+javafx {
+    version = "15.0.1"
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
 application {
     mainClassName = "com.example.MainKt"
 }
 
 dependencies {
-    implementation "no.tornado:tornadofx:$tornadofx_version"
+    api "no.tornado:tornadofx:$tornadofx_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
 }
 
