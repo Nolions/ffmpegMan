@@ -1,9 +1,10 @@
-package com.nolions.ffmpegman.library
+package com.nolions.ffmpegman.unit
 
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
+
 
 class FFMpeg(private val ffmpegExePath: String) {
     private var errorStream: InputStream? = null
@@ -13,7 +14,6 @@ class FFMpeg(private val ffmpegExePath: String) {
 
     private lateinit var media: Media
 
-    private var hlsPath: String = ""
     private var cmdList = ArrayList<String>()
 
     init {
@@ -34,8 +34,8 @@ class FFMpeg(private val ffmpegExePath: String) {
      * -----------------------
      * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 <output.m3u8>
      */
-    fun convertHLS(path: String, code: String = "copy", seconds: Int = 2, size: Int = 0): FFMpeg {
-        input(path)
+    fun convertHLS(input: String, code: String = "copy", seconds: Int = 2, size: Int = 0): FFMpeg {
+        input(input)
         videDecode(code)
         hlsTime(seconds)
         hlsListSize(size)
@@ -49,14 +49,20 @@ class FFMpeg(private val ffmpegExePath: String) {
      * -----------------------
      * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 -hls_playlist_type vod -hls_flags independent_segments <output.m3u8>
      */
-    fun convertVodHLS(path: String, code: String = "copy", seconds: Int = 2, size: Int = 0): FFMpeg {
-        input(path)
+    fun convertVodHLS(
+        input: String,
+        code: String = "copy",
+        seconds: Int = 2,
+        size: Int = 0,
+        output: String? = null
+    ): FFMpeg {
+        input(input)
         videDecode(code)
         hlsTime(seconds)
         hlsListSize(size)
         playlistType(HlsPlaylistType.VOD)
         hlsFlags(HlsFlagsOperation.INDEPENDENT_SEGMENTS)
-        output()
+        output(output)
 
         return this
     }
@@ -72,7 +78,6 @@ class FFMpeg(private val ffmpegExePath: String) {
         cmdList.add(path)
 
         media = Media(path = path)
-        hlsPath = "${media.parent}/${media.name}.m3u8"
 
         return this
     }
@@ -132,15 +137,29 @@ class FFMpeg(private val ffmpegExePath: String) {
     /**
      * 輸出檔案
      *
-     * @param output String|null
+     * @param targeDir String|null
      * @return FFMpeg
      */
-    fun output(output: String? = null): FFMpeg {
-        output?.let {
-            hlsPath = it
+    fun output(targetDir: String? = null): FFMpeg {
+        val outputDir = if (targetDir != null) {
+            val theDir = File("$targetDir/${media.name}")
+            if (!theDir.exists()) {
+                theDir.mkdirs()
+            }
+
+            theDir.path
+        } else {
+            val theDir = File("${media.parent}/${media.name}")
+            if (!theDir.exists()) {
+                theDir.mkdirs()
+            }
+
+            theDir.path
         }
 
-        cmdList.add(hlsPath)
+        val meu8File = "$outputDir/${media.name}.m3u8"
+        println(meu8File)
+        cmdList.add(meu8File)
 
         return this
     }
@@ -170,8 +189,8 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @param segments String
      * @return FFMpeg
      */
-    fun hlsFlags(operaion: HlsFlagsOperation): FFMpeg {
-        when (operaion) {
+    fun hlsFlags(operation: HlsFlagsOperation): FFMpeg {
+        when (operation) {
             HlsFlagsOperation.SINGLE_FILE,
             HlsFlagsOperation.DELETE_SEGMENTS,
             HlsFlagsOperation.APPEND_LIST,
@@ -188,17 +207,12 @@ class FFMpeg(private val ffmpegExePath: String) {
             HlsFlagsOperation.SECOND_LEVEL_SEGMENT_DURATION
             -> {
                 cmdList.add("-hls_flags")
-                cmdList.add(operaion.code)
+                cmdList.add(operation.code)
             }
         }
 
 
         return this
-    }
-
-    fun encrypt(keyInfo: String) {
-        cmdList.add("-hls_key_info_file")
-        cmdList.add(keyInfo)
     }
 
     /**
@@ -207,7 +221,6 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @return ArrayList<String>
      */
     fun run(): ArrayList<String> {
-        println(cmdList.size)
         val builder = ProcessBuilder(cmdList)
         val process = builder.start()
         errorStream = process.errorStream
@@ -224,8 +237,8 @@ class FFMpeg(private val ffmpegExePath: String) {
             br?.let {
                 while (it.readLine() != null) {
                     resultCollection.add(it.readLine())
-                    println(it.readLine())
-                    println("--------------------------------------------")
+//                    println(it.readLine())
+//                    println("--------------------------------------------")
                 }
             }
         } finally {

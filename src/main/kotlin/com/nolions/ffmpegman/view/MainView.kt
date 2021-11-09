@@ -1,42 +1,47 @@
 package com.nolions.ffmpegman.view
 
 import Config
-import com.nolions.ffmpegman.library.FFMpeg
+import com.nolions.ffmpegman.unit.FFMpeg
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.stage.FileChooser
 import tornadofx.*
-import java.io.File
-import java.util.*
-import kotlin.collections.ArrayList
+import java.io.*
+import java.nio.file.Files
 
 
 class MainView : View("Hello TornadoFX") {
-    private val cmd = ArrayList<String>()
     private val mediaPath = SimpleStringProperty()
     private val videoFilterList = listOf("*.mp4", "*.avi")
     private val collection = FXCollections.observableArrayList<String>()
+    val tempDir = Files.createTempDirectory("tmp").toFile().absolutePath
 
     private var dirPath = "."
 
+    private fun newOutputStream(fileName: String, charsetName: String = "utf-8"): Writer {
+        return BufferedWriter(OutputStreamWriter(FileOutputStream(fileName), charsetName))
+    }
+
     override val root = borderpane() {
+
         setRunResult(FFMpeg("ffmpeg").version().run())
 
-        center = vbox {
-            hbox {
-                textfield(mediaPath) {
-                }
+        center = hbox {
+            textfield(mediaPath) {
+            }
 
-                button("Chose") {
-                    action {
-                        chooseVideo()
-                    }
+            button("Chose") {
+                action {
+                    chooseVideo()
                 }
             }
 
             button("Convert") {
                 action {
-                    val result = FFMpeg(Config.ffmpeg).convertVodHLS(mediaPath.value).run()
+                    val result = FFMpeg(Config.ffmpeg).convertVodHLS(
+                        input = mediaPath.value,
+                        output = tempDir
+                    ).run()
                     setRunResult(result)
                 }
             }
@@ -74,14 +79,5 @@ class MainView : View("Hello TornadoFX") {
         ) {
             initialDirectory = File(dirPath)
         }
-    }
-
-    fun iv() {
-        val r = Random()
-        val sb = StringBuffer()
-        while (sb.length < 16) {
-            sb.append(Integer.toHexString(r.nextInt()))
-        }
-        println(sb.toString())
     }
 }
