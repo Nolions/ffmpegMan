@@ -1,4 +1,4 @@
-package com.nolions.pcoffmpeg
+package com.nolions.ffmpegman
 
 import tornadofx.launch
 

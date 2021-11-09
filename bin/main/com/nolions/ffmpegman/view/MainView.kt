@@ -1,11 +1,15 @@
-package com.nolions.pcoffmpeg.view
+package com.nolions.ffmpegman.view
 
-import com.nolions.pcoffmpeg.library.FFMpeg
+import Config
+import com.nolions.ffmpegman.library.FFMpeg
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.stage.FileChooser
 import tornadofx.*
 import java.io.File
+import java.util.*
+import kotlin.collections.ArrayList
+
 
 class MainView : View("Hello TornadoFX") {
     private val cmd = ArrayList<String>()
@@ -70,5 +74,14 @@ class MainView : View("Hello TornadoFX") {
         ) {
             initialDirectory = File(dirPath)
         }
+    }
+
+    fun iv() {
+        val r = Random()
+        val sb = StringBuffer()
+        while (sb.length < 16) {
+            sb.append(Integer.toHexString(r.nextInt()))
+        }
+        println(sb.toString())
     }
 }

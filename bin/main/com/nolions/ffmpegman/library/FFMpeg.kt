@@ -1,4 +1,4 @@
-package com.nolions.pcoffmpeg.library
+package com.nolions.ffmpegman.library
 
 import java.io.BufferedReader
 import java.io.File
@@ -194,6 +194,11 @@ class FFMpeg(private val ffmpegExePath: String) {
 
 
         return this
+    }
+
+    fun encrypt(keyInfo: String) {
+        cmdList.add("-hls_key_info_file")
+        cmdList.add(keyInfo)
     }
 
     /**
