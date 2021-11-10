@@ -1,30 +1,37 @@
 package com.nolions.ffmpegman.view
 
 import Config
-import com.nolions.ffmpegman.unit.FFMpeg
+import com.nolions.ffmpegman.model.FileObj
+import com.nolions.ffmpegman.unit.*
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.stage.FileChooser
 import tornadofx.*
-import java.io.*
-import java.nio.file.Files
-
+import java.io.File
+import java.nio.file.Paths
+import java.util.*
 
 class MainView : View("Hello TornadoFX") {
     private val mediaPath = SimpleStringProperty()
     private val videoFilterList = listOf("*.mp4", "*.avi")
     private val collection = FXCollections.observableArrayList<String>()
-    val tempDir = Files.createTempDirectory("tmp").toFile().absolutePath
+    val tmpDir = createTempDirectory("tmp")
 
     private var dirPath = "."
 
-    private fun newOutputStream(fileName: String, charsetName: String = "utf-8"): Writer {
-        return BufferedWriter(OutputStreamWriter(FileOutputStream(fileName), charsetName))
+
+    private fun convertStringToHex(str: String) {
+        val stringBuilder = StringBuilder()
+        val charArray = str.toCharArray()
+        for (c in charArray) {
+            val charToHex = Integer.toHexString(c.toInt())
+            stringBuilder.append(charToHex)
+        }
+        println("Converted Hex from String: $stringBuilder")
     }
 
     override val root = borderpane() {
-
-        setRunResult(FFMpeg("ffmpeg").version().run())
+        setRunResult(FFMpegUnit("ffmpeg").version().run())
 
         center = hbox {
             textfield(mediaPath) {
@@ -38,16 +45,36 @@ class MainView : View("Hello TornadoFX") {
 
             button("Convert") {
                 action {
-                    val result = FFMpeg(Config.ffmpeg).convertVodHLS(
-                        input = mediaPath.value,
-                        output = tempDir
-                    ).run()
-                    setRunResult(result)
+                    videoProcess(mediaPath.value)
+
                 }
             }
         }
 
         bottom = listview(collection)
+
+    }
+
+    /**
+     * create temp dir
+     * convert to HLS
+     * update to S3
+     */
+    fun videoProcess(filePath: String) {
+        val file = FileObj(filePath)
+        val path = createDirectory("$tmpDir/${file.name}")
+        val m3u8 = "$path/${file.name}.m3u8"
+
+        println(path)
+        println(m3u8)
+        val result = FFMpegUnit(Config.ffmpeg).convertVodHLS(
+            input = mediaPath.value,
+            output = m3u8
+        ).run()
+        setRunResult(result)
+
+        AWSS3Unit.uploadDirectory(file.name, Paths.get(path))
+//        AWSS3Unit.putObject(file.name, path)
     }
 
     private fun setRunResult(result: ArrayList<String>) {

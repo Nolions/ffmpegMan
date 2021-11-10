@@ -1,7 +1,6 @@
 package com.nolions.ffmpegman.unit
 
 import java.io.BufferedReader
-import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
 
@@ -11,8 +10,6 @@ class FFMpegUnit(private val ffmpegExePath: String) {
     private var inputStreamReader: InputStreamReader? = null
     private var br: BufferedReader? = null
     private var resultCollection = ArrayList<String>()
-
-    private lateinit var media: Media
 
     private var cmdList = ArrayList<String>()
 
@@ -34,12 +31,12 @@ class FFMpegUnit(private val ffmpegExePath: String) {
      * -----------------------
      * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 <output.m3u8>
      */
-    fun convertHLS(input: String, code: String = "copy", seconds: Int = 2, size: Int = 0): FFMpegUnit {
+    fun convertHLS(input: String, code: String = "copy", seconds: Int = 2, size: Int = 0, target: String): FFMpegUnit {
         input(input)
         videDecode(code)
         hlsTime(seconds)
         hlsListSize(size)
-        output()
+        output(target)
 
         return this
     }
@@ -54,7 +51,7 @@ class FFMpegUnit(private val ffmpegExePath: String) {
         code: String = "copy",
         seconds: Int = 2,
         size: Int = 0,
-        output: String? = null
+        output: String
     ): FFMpegUnit {
         input(input)
         videDecode(code)
@@ -76,8 +73,6 @@ class FFMpegUnit(private val ffmpegExePath: String) {
     fun input(path: String): FFMpegUnit {
         cmdList.add("-i")
         cmdList.add(path)
-
-        media = Media(path = path)
 
         return this
     }
@@ -134,32 +129,34 @@ class FFMpegUnit(private val ffmpegExePath: String) {
         return this
     }
 
+    var output: String? = null
+
     /**
      * 輸出檔案
      *
-     * @param targeDir String|null
+     * @param targetDir String|null
      * @return FFMpeg
      */
-    fun output(targetDir: String? = null): FFMpegUnit {
-        val outputDir = if (targetDir != null) {
-            val theDir = File("$targetDir/${media.name}")
-            if (!theDir.exists()) {
-                theDir.mkdirs()
-            }
-
-            theDir.path
-        } else {
-            val theDir = File("${media.parent}/${media.name}")
-            if (!theDir.exists()) {
-                theDir.mkdirs()
-            }
-
-            theDir.path
-        }
-
-        val meu8File = "$outputDir/${media.name}.m3u8"
-        println(meu8File)
-        cmdList.add(meu8File)
+    fun output(target: String): FFMpegUnit {
+//        output = if (targetDir != null) {
+//            val theDir = File("$targetDir/${media.name}")
+//            if (!theDir.exists()) {
+//                theDir.mkdirs()
+//            }
+//
+//            theDir.path
+//        } else {
+//            val theDir = File("${media.parent}/${media.name}")
+//            if (!theDir.exists()) {
+//                theDir.mkdirs()
+//            }
+//
+//            theDir.path
+//        }
+//
+//        val meu8File = "$output/${media.name}.m3u8"
+//        println(meu8File)
+        cmdList.add(target)
 
         return this
     }
@@ -249,31 +246,6 @@ class FFMpegUnit(private val ffmpegExePath: String) {
         }
 
         return resultCollection
-    }
-
-    data class Media(val path: String) {
-        private val _file = File(path)
-        val file = _file
-        val parent: String = _file.parent
-        val name: String
-            get() {
-                var fname = _file.name
-                val pos = fname.lastIndexOf(".")
-                if (pos > 0) {
-                    fname = fname.substring(0, pos)
-                }
-                return fname
-            }
-        val extension: String
-            get() {
-                var ext = ""
-                val index: Int = path.lastIndexOf('.')
-                if (index > 0) {
-                    ext = path.substring(index + 1)
-                }
-
-                return ext
-            }
     }
 }
 
