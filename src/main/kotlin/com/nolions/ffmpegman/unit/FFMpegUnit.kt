@@ -6,7 +6,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 
 
-class FFMpeg(private val ffmpegExePath: String) {
+class FFMpegUnit(private val ffmpegExePath: String) {
     private var errorStream: InputStream? = null
     private var inputStreamReader: InputStreamReader? = null
     private var br: BufferedReader? = null
@@ -23,7 +23,7 @@ class FFMpeg(private val ffmpegExePath: String) {
     /**
      * FFMpeg 版本資訊
      */
-    fun version(): FFMpeg {
+    fun version(): FFMpegUnit {
         cmdList.add("-")
         cmdList.add("version")
         return this
@@ -34,7 +34,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * -----------------------
      * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 <output.m3u8>
      */
-    fun convertHLS(input: String, code: String = "copy", seconds: Int = 2, size: Int = 0): FFMpeg {
+    fun convertHLS(input: String, code: String = "copy", seconds: Int = 2, size: Int = 0): FFMpegUnit {
         input(input)
         videDecode(code)
         hlsTime(seconds)
@@ -55,7 +55,7 @@ class FFMpeg(private val ffmpegExePath: String) {
         seconds: Int = 2,
         size: Int = 0,
         output: String? = null
-    ): FFMpeg {
+    ): FFMpegUnit {
         input(input)
         videDecode(code)
         hlsTime(seconds)
@@ -73,7 +73,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @param path String
      * @return FFMpeg
      */
-    fun input(path: String): FFMpeg {
+    fun input(path: String): FFMpegUnit {
         cmdList.add("-i")
         cmdList.add(path)
 
@@ -88,7 +88,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @param code String
      * @return FFMpeg
      */
-    fun videDecode(code: String = "copy"): FFMpeg {
+    fun videDecode(code: String = "copy"): FFMpegUnit {
         cmdList.add("-vcodec")
         cmdList.add(code)
 
@@ -101,7 +101,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @param code String
      * @return FFMpeg
      */
-    fun audioDecode(code: String = "copy"): FFMpeg {
+    fun audioDecode(code: String = "copy"): FFMpegUnit {
         cmdList.add("-acodec")
         cmdList.add(code)
 
@@ -114,7 +114,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @param seconds Int
      * @return FFMpeg
      */
-    fun hlsTime(seconds: Int = 2): FFMpeg {
+    fun hlsTime(seconds: Int = 2): FFMpegUnit {
         cmdList.add("-hls_time")
         cmdList.add(seconds.toString())
 
@@ -127,7 +127,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @param  size Int
      * @return FFMpeg
      */
-    fun hlsListSize(size: Int = 0): FFMpeg {
+    fun hlsListSize(size: Int = 0): FFMpegUnit {
         cmdList.add("-hls_list_size")
         cmdList.add(size.toString())
 
@@ -140,7 +140,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @param targeDir String|null
      * @return FFMpeg
      */
-    fun output(targetDir: String? = null): FFMpeg {
+    fun output(targetDir: String? = null): FFMpegUnit {
         val outputDir = if (targetDir != null) {
             val theDir = File("$targetDir/${media.name}")
             if (!theDir.exists()) {
@@ -173,7 +173,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @return FFMpeg
      */
     // TODO segments => enum
-    fun playlistType(type: HlsPlaylistType): FFMpeg {
+    fun playlistType(type: HlsPlaylistType): FFMpegUnit {
         when (type) {
             HlsPlaylistType.VOD, HlsPlaylistType.EVENT -> {
                 cmdList.add("-hls_playlist_type")
@@ -189,7 +189,7 @@ class FFMpeg(private val ffmpegExePath: String) {
      * @param segments String
      * @return FFMpeg
      */
-    fun hlsFlags(operation: HlsFlagsOperation): FFMpeg {
+    fun hlsFlags(operation: HlsFlagsOperation): FFMpegUnit {
         when (operation) {
             HlsFlagsOperation.SINGLE_FILE,
             HlsFlagsOperation.DELETE_SEGMENTS,
