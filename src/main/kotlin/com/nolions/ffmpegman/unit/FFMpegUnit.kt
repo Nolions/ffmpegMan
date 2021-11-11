@@ -27,6 +27,24 @@ class FFMpegUnit(private val ffmpegExePath: String) {
     }
 
     /**
+     * 取得影片長度
+     *
+     * @param input String
+     */
+    fun mediaInfo(input: String):String {
+        input(input)
+        val result = this.run()
+        result.forEach { it ->
+            val str = it.trim()
+            if (str.startsWith("Duration:")) {
+                return str.substring(0, str.indexOf(","))
+            }
+        }
+
+        return "--:--:--s"
+    }
+
+    /**
      * video 轉換成 HLS
      * -----------------------
      * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 <output.m3u8>
@@ -233,11 +251,13 @@ class FFMpegUnit(private val ffmpegExePath: String) {
         try {
             br?.let {
                 while (it.readLine() != null) {
-                    resultCollection.add(it.readLine())
-//                    println(it.readLine())
-//                    println("--------------------------------------------")
+                    val str = it.readLine().toString()
+                    resultCollection.add(str)
+//                    println(str)
                 }
             }
+        } catch (e: Exception) {
+
         } finally {
             br?.close()
             inputStreamReader?.close()
