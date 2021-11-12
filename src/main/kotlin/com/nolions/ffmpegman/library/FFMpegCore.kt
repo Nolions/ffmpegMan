@@ -1,6 +1,7 @@
 package com.nolions.ffmpegman.library
 
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStream
 import java.io.InputStreamReader
 
@@ -45,36 +46,31 @@ class FFMpegCore(ffmpegExePath: String) {
     /**
      * video 轉換成 HLS
      * -----------------------
-     * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 <output.m3u8>
+     * EX:
+     *  ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 <output.m3u8>
+     *  ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 -hls_playlist_type vod -hls_flags independent_segments <output.m3u8>
      */
-    fun convertHLS(input: String, code: String = "copy", seconds: Int = 2, size: Int = 0, target: String): FFMpegCore {
-        input(input)
-        videDecode(code)
-        hlsTime(seconds)
-        hlsListSize(size)
-        output(target)
-
-        return this
-    }
-
-    /**
-     * VOD convert HLS
-     * -----------------------
-     * EX: ffmpeg -i <input file> -vcodec copy -acodec copy -hls_time 5 -hls_list_size 0 -hls_playlist_type vod -hls_flags independent_segments <output.m3u8>
-     */
-    fun convertVodHLS(
+    fun convertHLS(
         input: String,
         code: String = "copy",
         seconds: Int = 2,
         size: Int = 0,
-        output: String
+        output: String,
+        encryptKey: File? = null,
+        vod: Boolean = false
     ): FFMpegCore {
         input(input)
         videDecode(code)
         hlsTime(seconds)
         hlsListSize(size)
-        playlistType(HlsPlaylistType.VOD)
-        hlsFlags(HlsFlagsOperation.INDEPENDENT_SEGMENTS)
+        if (vod) {
+            playlistType(HlsPlaylistType.VOD)
+            hlsFlags(HlsFlagsOperation.INDEPENDENT_SEGMENTS)
+        }
+        if (encryptKey != null) {
+            hlsEncrypt(encryptKey)
+        }
+
         output(output)
 
         return this
@@ -145,6 +141,13 @@ class FFMpegCore(ffmpegExePath: String) {
         return this
     }
 
+    fun hlsEncrypt(keyInfoFile: File): FFMpegCore {
+        commends.add("-hls_key_info_file")
+        commends.add(keyInfoFile.path)
+
+        return this
+    }
+
     var output: String? = null
 
     /**
@@ -154,24 +157,6 @@ class FFMpegCore(ffmpegExePath: String) {
      * @return FFMpeg
      */
     fun output(target: String): FFMpegCore {
-//        output = if (targetDir != null) {
-//            val theDir = File("$targetDir/${media.name}")
-//            if (!theDir.exists()) {
-//                theDir.mkdirs()
-//            }
-//
-//            theDir.path
-//        } else {
-//            val theDir = File("${media.parent}/${media.name}")
-//            if (!theDir.exists()) {
-//                theDir.mkdirs()
-//            }
-//
-//            theDir.path
-//        }
-//
-//        val meu8File = "$output/${media.name}.m3u8"
-//        println(meu8File)
         commends.add(target)
 
         return this
@@ -233,7 +218,7 @@ class FFMpegCore(ffmpegExePath: String) {
      *
      * @return ArrayList<String>
      */
-    fun build(): FFMpegCore {
+    suspend fun build(): FFMpegCore {
         resultCollection = ArrayList()
 
         val builder = ProcessBuilder(commends)
