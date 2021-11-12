@@ -21,6 +21,7 @@ application {
 
 dependencies {
     implementation "no.tornado:tornadofx:$tornadofx_version"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2-native-mt'
     implementation platform('software.amazon.awssdk:bom:2.15.0')
     implementation 'software.amazon.awssdk:s3'
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"

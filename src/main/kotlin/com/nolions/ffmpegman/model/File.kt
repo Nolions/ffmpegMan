@@ -1,11 +1,12 @@
 package com.nolions.ffmpegman.model
 
+import com.nolions.ffmpegman.unit.hex
 import java.io.File
 import java.util.*
 
 data class FileObj(val path: String) {
-    private val uid = UUID.randomUUID().version()
     private val _file = File(path)
+    val uid = UUID.randomUUID().hex()
     val file = _file
     val name: String
         get() {
