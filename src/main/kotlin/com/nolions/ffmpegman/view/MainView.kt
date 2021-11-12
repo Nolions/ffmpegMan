@@ -1,6 +1,6 @@
 package com.nolions.ffmpegman.view
 
-import Config
+import com.nolions.ffmpegman.library.FFMpeg
 import com.nolions.ffmpegman.model.FileObj
 import com.nolions.ffmpegman.unit.*
 import javafx.beans.property.SimpleStringProperty
@@ -12,6 +12,7 @@ import java.nio.file.Paths
 import java.util.*
 
 class MainView : View("Hello TornadoFX") {
+    val ffMpeg = FFMpeg("ffmpeg")
     private val mediaPath = SimpleStringProperty()
     private val videoFilterList = listOf("*.mp4", "*.avi")
     private val collection = FXCollections.observableArrayList<String>()
@@ -19,19 +20,8 @@ class MainView : View("Hello TornadoFX") {
 
     private var dirPath = "."
 
-
-    private fun convertStringToHex(str: String) {
-        val stringBuilder = StringBuilder()
-        val charArray = str.toCharArray()
-        for (c in charArray) {
-            val charToHex = Integer.toHexString(c.toInt())
-            stringBuilder.append(charToHex)
-        }
-        println("Converted Hex from String: $stringBuilder")
-    }
-
     override val root = borderpane() {
-        setRunResult(FFMpegUnit("ffmpeg").version().run())
+        setRunResult(ffMpeg.new().version().build().result())
 
         center = hbox {
             textfield(mediaPath) {
@@ -52,29 +42,27 @@ class MainView : View("Hello TornadoFX") {
         }
 
         bottom = listview(collection)
-
     }
 
     /**
      * create temp dir
      * convert to HLS
      * update to S3
+     * remove temp dir
      */
-    fun videoProcess(filePath: String) {
+    private fun videoProcess(filePath: String) {
+        val s3Prefix = "sglive/hls"
         val file = FileObj(filePath)
-        val path = createDirectory("$tmpDir/${file.name}")
-        val m3u8 = "$path/${file.name}.m3u8"
+        val path = createDirectory("$tmpDir/${file.uid}")
+        val m3u8 = "$path/video.m3u8"
 
-        println(path)
-        println(m3u8)
-        val result = FFMpegUnit(Config.ffmpeg).convertVodHLS(
+        val result = ffMpeg.new().convertVodHLS(
             input = mediaPath.value,
             output = m3u8
-        ).run()
+        ).build().result()
         setRunResult(result)
 
-        AWSS3Unit.uploadDirectory(file.name, Paths.get(path))
-//        AWSS3Unit.putObject(file.name, path)
+        AWSS3Unit.uploadDirectory("$s3Prefix/${file.uid}", Paths.get(path))
     }
 
     private fun setRunResult(result: ArrayList<String>) {
