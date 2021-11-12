@@ -28,7 +28,7 @@ object AWSS3Unit {
     private lateinit var s3AsyncClient: S3AsyncClient
     lateinit var bucket: String
     var poolSize = 20
-    
+
     fun init(id: String, key: String, bucket: String? = null) {
         val credentials = credentials(id, key)
 
@@ -56,7 +56,7 @@ object AWSS3Unit {
         }
         .build()
 
-    private fun poolExecutor(poolSize: Int? = 50): ThreadPoolExecutor {
+    private fun poolExecutor(poolSize: Int? = 10): ThreadPoolExecutor {
         val executor = ThreadPoolExecutor(
             50, 50,
             10, TimeUnit.SECONDS,
@@ -82,7 +82,7 @@ object AWSS3Unit {
             s3Client.putObject(objectRequest, RequestBody.fromFile(File(filePath)))
             true
         } catch (e: Exception) {
-            println("update AWS fail fail, err:${e.message}")
+            println("update AWS fail, err:${e.message}")
             false
         }
     }

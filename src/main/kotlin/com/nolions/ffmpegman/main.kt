@@ -5,7 +5,6 @@ import com.nolions.ffmpegman.unit.AWSS3Unit
 import tornadofx.*
 
 fun main(args: Array<String>) {
-    println("ffmpeg Exe: ${args[0]}")
     var ffmpegExe: String? = null
     var awsID: String? = null
     var awsKey: String? = null
@@ -27,8 +26,6 @@ fun main(args: Array<String>) {
 
     Config.ffmpeg = ffmpegExe!!
     AWSS3Unit.init(awsID!!, awsKey!!, awsBucket)
-    println(awsKey)
-
 
     launch<MyApp>()
 }
